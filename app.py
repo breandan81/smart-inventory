@@ -135,6 +135,7 @@ def items():
 
 @app.route("/items/new", methods=["GET", "POST"])
 def new_item():
+    from_location = request.args.get("from_location") or request.form.get("from_location")
     if request.method == "POST":
         name  = request.form["name"].strip()
         desc  = request.form.get("description", "").strip()
@@ -143,10 +144,19 @@ def new_item():
         conn.execute("INSERT INTO items (name, description, photo) VALUES (?,?,?)",
                      (name, desc, photo))
         conn.commit()
+        item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        if from_location:
+            conn.execute(
+                "INSERT INTO item_locations (item_id, location_id, quantity) VALUES (?,?,1)",
+                (item_id, int(from_location)),
+            )
+            conn.commit()
         conn.close()
         flash("Item created.", "success")
+        if from_location:
+            return redirect(url_for("location_detail", location_id=int(from_location)))
         return redirect(url_for("items"))
-    return render_template("item_form.html", item=None)
+    return render_template("item_form.html", item=None, from_location=from_location)
 
 
 @app.route("/items/<int:item_id>")

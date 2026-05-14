@@ -2,21 +2,21 @@
 {% block title %}Boxes — BoxTrack{% endblock %}
 {% block content %}
 
-<div class="flex items-center justify-between mb-4">
-  <h1 class="text-xl font-bold">Boxes / Locations</h1>
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-bold text-slate-900">Boxes</h1>
   <a href="/locations/new"
-     class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm">
-    + New
+     class="bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm shadow-violet-200">
+    + New box
   </a>
 </div>
 
 <form method="get" class="mb-4">
   <div class="relative">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
     </svg>
     <input type="search" name="q" value="{{ q }}" placeholder="Search boxes…"
-           class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+           class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
   </div>
 </form>
 
@@ -24,32 +24,36 @@
 <div class="space-y-2">
   {% for loc in locations %}
   <a href="/locations/{{ loc.id }}"
-     class="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-    <div class="flex items-center gap-3">
-      <div class="bg-green-100 rounded-lg p-2">
-        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-        </svg>
-      </div>
-      <div>
-        <p class="font-semibold text-gray-900">{{ loc.name }}</p>
-        <p class="text-xs text-gray-500">
-          <span class="font-mono">{{ loc.code }}</span>
-          {% if loc.description %} · {{ loc.description[:40] }}{% if loc.description|length > 40 %}…{% endif %}{% endif %}
-        </p>
-      </div>
+     class="flex items-center gap-3.5 bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-slate-100 hover:border-violet-200 transition-colors group">
+    <div class="bg-violet-50 rounded-xl p-2.5 group-hover:bg-violet-100 transition-colors flex-shrink-0">
+      <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+      </svg>
     </div>
-    <span class="text-sm text-gray-400 flex-shrink-0">{{ loc.item_count }} item{{ 's' if loc.item_count != 1 }}</span>
+    <div class="flex-1 min-w-0">
+      <p class="font-semibold text-slate-900 truncate">{{ loc.name }}</p>
+      <p class="text-xs text-slate-400 mt-0.5">
+        <span class="font-mono">{{ loc.code }}</span>
+        {% if loc.description %}<span class="mx-1">·</span>{{ loc.description[:40] }}{% if loc.description|length > 40 %}…{% endif %}{% endif %}
+      </p>
+    </div>
+    <span class="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full flex-shrink-0">
+      {{ loc.item_count }}
+    </span>
   </a>
   {% endfor %}
 </div>
+
 {% else %}
-<div class="text-center py-16 text-gray-400">
-  <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-  </svg>
-  <p class="font-medium">No boxes yet</p>
-  <a href="/locations/new" class="mt-2 inline-block text-blue-600 text-sm">Add your first box →</a>
+<div class="flex flex-col items-center text-center py-10">
+  <img src="/static/empty.jpg" alt="" class="w-48 h-48 object-contain mb-4 opacity-90 rounded-2xl">
+  <p class="font-semibold text-slate-700">{% if q %}No boxes match "{{ q }}"{% else %}No boxes yet{% endif %}</p>
+  <p class="text-sm text-slate-400 mt-1 mb-4">{% if q %}Try a different search.{% else %}Create a box to start organizing.{% endif %}</p>
+  {% if not q %}
+  <a href="/locations/new" class="bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-violet-200">
+    + New box
+  </a>
+  {% endif %}
 </div>
 {% endif %}
 

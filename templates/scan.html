@@ -1,37 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Scan QR — BoxTrack{% endblock %}
+{% block title %}Scan — BoxTrack{% endblock %}
 {% block content %}
 
-<h1 class="text-xl font-bold mb-1">Scan a Box</h1>
+<h1 class="text-xl font-bold text-slate-900 mb-1">Scan a Box</h1>
+<p class="text-sm text-slate-400 mb-5">Point your camera at a BoxTrack label to open that box.</p>
 
-<!-- primary: native camera instruction -->
-<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
-  <p class="text-sm font-semibold text-blue-800 mb-1">Use your phone's camera app</p>
-  <p class="text-sm text-blue-700">
-    Point your camera at any BoxTrack QR label — tap the link that appears to open that box instantly.
-    No special app needed.
-  </p>
+<!-- native camera tip -->
+<div class="flex gap-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
+  <div class="text-2xl">📷</div>
+  <div>
+    <p class="text-sm font-semibold text-indigo-800">Use your phone's camera app</p>
+    <p class="text-sm text-indigo-600 mt-0.5">Point at any QR label and tap the link that appears — no extra app needed.</p>
+  </div>
 </div>
 
-<!-- manual code entry -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-  <p class="text-sm font-semibold text-gray-700 mb-2">Or enter a code manually</p>
+<!-- manual entry -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+  <p class="text-sm font-semibold text-slate-700 mb-2.5">Enter a code manually</p>
   <form onsubmit="handleManual(event)" class="flex gap-2">
-    <input type="text" id="manual-code" placeholder="e.g. ABC123"
-           class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <input type="text" id="manual-code" placeholder="ABC123"
+           class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm font-mono uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
            maxlength="20" autocomplete="off" autofocus>
     <button type="submit"
-            class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold">Go</button>
+            class="bg-indigo-600 text-white px-5 py-3 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200">Go</button>
   </form>
 </div>
 
-<!-- in-app scanner (only shown if camera is available) -->
+<!-- in-app scanner (HTTPS only) -->
 <div id="scanner-section" class="hidden">
-  <p class="text-sm font-semibold text-gray-700 mb-2">In-app scanner</p>
-  <div class="bg-black rounded-xl overflow-hidden shadow-lg mb-2" style="aspect-ratio:1">
+  <p class="text-sm font-semibold text-slate-700 mb-2">In-app scanner</p>
+  <div class="bg-black rounded-2xl overflow-hidden shadow-lg mb-2" style="aspect-ratio:1">
     <div id="reader" class="w-full h-full"></div>
   </div>
-  <p id="scan-status" class="text-center text-xs text-gray-400"></p>
+  <p id="scan-status" class="text-center text-xs text-slate-400 mt-1"></p>
 </div>
 
 {% endblock %}
@@ -46,11 +47,10 @@ document.getElementById('manual-code').addEventListener('input', function() {
   this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 });
 
-// Only attempt in-app scanner if we're on HTTPS (camera API requires it)
 if (window.location.protocol === 'https:') {
-  const script = document.createElement('script');
-  script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-  script.onload = () => {
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  s.onload = () => {
     Html5Qrcode.getCameras().then(cameras => {
       if (!cameras.length) return;
       document.getElementById('scanner-section').classList.remove('hidden');
@@ -58,8 +58,8 @@ if (window.location.protocol === 'https:') {
       const scanner = new Html5Qrcode('reader');
       const status  = document.getElementById('scan-status');
       status.textContent = 'Ready — point at a QR code';
-      scanner.start(cam.id, { fps: 10, qrbox: 250, aspectRatio: 1 }, decodedText => {
-        let code = decodedText.trim();
+      scanner.start(cam.id, { fps: 10, qrbox: 250, aspectRatio: 1 }, text => {
+        let code = text.trim();
         const m  = code.match(/\/go\/([A-Z0-9]+)\s*$/i);
         if (m) code = m[1];
         status.textContent = '✓ ' + code;
@@ -67,7 +67,7 @@ if (window.location.protocol === 'https:') {
       }, () => {});
     }).catch(() => {});
   };
-  document.body.appendChild(script);
+  document.body.appendChild(s);
 }
 </script>
 {% endblock %}

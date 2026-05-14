@@ -2,89 +2,104 @@
 {% block title %}{{ location.name }} — BoxTrack{% endblock %}
 {% block content %}
 
+<!-- header -->
 <div class="flex items-center gap-3 mb-1">
-  <a href="/locations" class="text-gray-400 hover:text-gray-600">
+  <a href="/locations" class="text-slate-400 hover:text-slate-600 transition-colors">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold flex-1 truncate">{{ location.name }}</h1>
-  <a href="/locations/{{ location.id }}/edit" class="text-blue-600 text-sm font-semibold">Edit</a>
+  <h1 class="text-xl font-bold text-slate-900 flex-1 truncate">{{ location.name }}</h1>
+  <a href="/locations/{{ location.id }}/edit"
+     class="text-sm font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl">Edit</a>
 </div>
 
-<div class="flex items-center gap-2 mb-1 ml-9">
-  <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ location.code }}</span>
+<div class="flex items-center gap-2 ml-9 mb-4">
+  <span class="text-xs font-mono font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg tracking-widest">{{ location.code }}</span>
   <a href="/qr/{{ location.id }}.png" target="_blank"
-     class="text-xs text-blue-600">View QR</a>
+     class="text-xs text-indigo-500 hover:text-indigo-700">View QR ↗</a>
 </div>
 
 {% if location.description %}
-<p class="text-sm text-gray-500 ml-9 mb-3">{{ location.description }}</p>
+<p class="text-sm text-slate-500 ml-9 -mt-2 mb-4">{{ location.description }}</p>
 {% endif %}
 
-<!-- add item search -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-  <p class="text-sm font-semibold text-gray-700 mb-2">Add an item</p>
+<!-- add item -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-5">
+  <div class="flex items-center justify-between mb-2.5">
+    <p class="text-sm font-semibold text-slate-700">Add an item</p>
+    <a href="/items/new?from_location={{ location.id }}"
+       class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">+ New item</a>
+  </div>
   <div class="relative mb-2">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
     </svg>
-    <input type="text" id="item-search" placeholder="Search items to add…"
-           autocomplete="off"
-           class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <input type="text" id="item-search" placeholder="Search items to add…" autocomplete="off"
+           class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
   </div>
-  <div id="search-results" class="space-y-1 hidden"></div>
 
-  <!-- add form (hidden until item selected) -->
-  <form method="post" action="/locations/{{ location.id }}/add" id="add-form" class="hidden mt-3 flex gap-2 items-center">
-    <input type="hidden" name="item_id" id="selected-item-id">
-    <div class="flex-1 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-      <p class="text-xs text-blue-500">Adding</p>
-      <p class="text-sm font-semibold text-blue-800 truncate" id="selected-item-name"></p>
+  <div id="search-results" class="rounded-xl border border-slate-100 overflow-hidden hidden mb-2"></div>
+
+  <form method="post" action="/locations/{{ location.id }}/add" id="add-form" class="hidden">
+    <div class="flex gap-2 items-center bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs text-indigo-400 font-medium">Adding</p>
+        <p class="text-sm font-semibold text-indigo-900 truncate" id="selected-item-name"></p>
+      </div>
+      <input type="hidden" name="item_id" id="selected-item-id">
+      <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <button type="button" onclick="changeQty(-1)" class="px-2 py-1.5 text-slate-500 hover:bg-slate-50 text-base">−</button>
+        <input type="number" name="quantity" id="qty-input" value="1" min="1" max="9999"
+               class="w-10 text-center text-sm font-semibold border-0 focus:outline-none">
+        <button type="button" onclick="changeQty(1)" class="px-2 py-1.5 text-slate-500 hover:bg-slate-50 text-base">+</button>
+      </div>
+      <button type="submit" class="bg-indigo-600 text-white px-3.5 py-2 rounded-lg text-sm font-semibold">Add</button>
+      <button type="button" onclick="clearSelection()" class="text-slate-300 hover:text-slate-500 p-1">✕</button>
     </div>
-    <input type="number" name="quantity" value="1" min="1" max="9999"
-           class="w-16 border border-gray-200 rounded-lg px-2 py-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Add</button>
-    <button type="button" onclick="clearSelection()" class="text-gray-400 px-2 py-2">✕</button>
   </form>
 </div>
 
-<!-- items in this location -->
-<div class="flex items-center justify-between mb-2">
-  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+<!-- contents -->
+<div class="flex items-center justify-between mb-3">
+  <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest">
     Contents ({{ items|length }})
   </h2>
 </div>
 
 {% if items %}
-<div class="space-y-2" id="items-list">
+<div class="space-y-2">
   {% for item in items %}
-  <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="flex items-center gap-3 px-4 py-3">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100">
+    <div class="flex items-center gap-3 px-4 py-3.5">
       {% if item.photo %}
       <img src="/uploads/{{ item.photo }}" alt="" class="thumb">
       {% else %}
-      <div class="thumb bg-gray-100 flex items-center justify-center text-gray-300">
+      <div class="thumb bg-slate-100 flex items-center justify-center text-slate-300 flex-shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
         </svg>
       </div>
       {% endif %}
       <a href="/items/{{ item.id }}" class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-900 truncate">{{ item.name }}</p>
+        <p class="font-semibold text-slate-900 truncate">{{ item.name }}</p>
         {% if item.description %}
-        <p class="text-xs text-gray-400 truncate">{{ item.description }}</p>
+        <p class="text-xs text-slate-400 truncate mt-0.5">{{ item.description }}</p>
         {% endif %}
       </a>
-      <!-- quantity editor -->
-      <form method="post" action="/locations/{{ location.id }}/qty/{{ item.id }}" class="flex items-center gap-1">
-        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="9999"
-               class="w-14 border border-gray-200 rounded-lg px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-               onchange="this.form.submit()">
+      <!-- qty -->
+      <form method="post" action="/locations/{{ location.id }}/qty/{{ item.id }}"
+            class="flex items-center gap-0 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+        <button type="submit" name="quantity" value="{{ [item.quantity - 1, 1]|max }}"
+                class="px-2 py-1.5 text-slate-500 hover:bg-slate-200 transition-colors text-base leading-none">−</button>
+        <span class="w-8 text-center text-sm font-semibold text-slate-700">{{ item.quantity }}</span>
+        <button type="submit" name="quantity" value="{{ item.quantity + 1 }}"
+                class="px-2 py-1.5 text-slate-500 hover:bg-slate-200 transition-colors text-base leading-none">+</button>
       </form>
+      <!-- remove -->
       <form method="post" action="/locations/{{ location.id }}/remove/{{ item.id }}"
-            onsubmit="return confirm('Remove {{ item.name }} from this box?')">
-        <button type="submit" class="ml-1 text-red-400 hover:text-red-600 p-1">
+            onsubmit="return confirm('Remove {{ item.name }}?')">
+        <button type="submit" class="ml-1 text-slate-300 hover:text-red-400 transition-colors p-1">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
           </svg>
@@ -94,10 +109,12 @@
   </div>
   {% endfor %}
 </div>
+
 {% else %}
-<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
-  <p class="text-sm">This box is empty.</p>
-  <p class="text-xs mt-1">Search above to add items.</p>
+<div class="flex flex-col items-center text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200">
+  <img src="/static/empty.jpg" alt="" class="w-36 h-36 object-contain mb-3 opacity-80 rounded-xl">
+  <p class="text-sm font-medium text-slate-600">This box is empty</p>
+  <p class="text-xs text-slate-400 mt-1">Search above to add items.</p>
 </div>
 {% endif %}
 
@@ -120,23 +137,23 @@ async function fetchItems(q) {
   const box  = document.getElementById('search-results');
 
   if (!data.length) {
-    box.innerHTML = '<p class="text-xs text-gray-400 px-2 py-2">No items found. <a href="/items/new" class="text-blue-600">Create one?</a></p>';
+    box.innerHTML = '<p class="text-xs text-slate-400 px-4 py-3">No items found. <a href="/items/new" class="text-indigo-500">Create one?</a></p>';
     box.classList.remove('hidden');
     return;
   }
 
   box.innerHTML = data.map(item => `
     <button type="button" onclick='selectItem(${item.id}, ${JSON.stringify(item.name)})'
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-left">
+            class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
       ${item.photo
         ? `<img src="/uploads/${item.photo}" class="thumb">`
-        : `<div class="thumb bg-gray-100 flex items-center justify-center text-gray-300">
+        : `<div class="thumb bg-slate-100 flex items-center justify-center text-slate-300">
              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
              </svg></div>`}
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-gray-900 truncate">${item.name}</p>
-        ${item.description ? `<p class="text-xs text-gray-400 truncate">${item.description}</p>` : ''}
+        <p class="text-sm font-semibold text-slate-900 truncate">${item.name}</p>
+        ${item.description ? `<p class="text-xs text-slate-400 truncate">${item.description}</p>` : ''}
       </div>
     </button>
   `).join('');
@@ -146,6 +163,7 @@ async function fetchItems(q) {
 function selectItem(id, name) {
   document.getElementById('selected-item-id').value = id;
   document.getElementById('selected-item-name').textContent = name;
+  document.getElementById('qty-input').value = 1;
   document.getElementById('add-form').classList.remove('hidden');
   hideResults();
   document.getElementById('item-search').value = '';
@@ -153,7 +171,11 @@ function selectItem(id, name) {
 
 function clearSelection() {
   document.getElementById('add-form').classList.add('hidden');
-  document.getElementById('selected-item-id').value = '';
+}
+
+function changeQty(delta) {
+  const el = document.getElementById('qty-input');
+  el.value = Math.max(1, parseInt(el.value || 1) + delta);
 }
 
 function hideResults() {

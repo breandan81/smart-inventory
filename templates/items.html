@@ -2,21 +2,21 @@
 {% block title %}Items — BoxTrack{% endblock %}
 {% block content %}
 
-<div class="flex items-center justify-between mb-4">
-  <h1 class="text-xl font-bold">Items</h1>
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-bold text-slate-900">Items</h1>
   <a href="/items/new"
-     class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm">
-    + New
+     class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200">
+    + New item
   </a>
 </div>
 
 <form method="get" class="mb-4">
   <div class="relative">
-    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
     </svg>
     <input type="search" name="q" value="{{ q }}" placeholder="Search items…"
-           class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+           class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
   </div>
 </form>
 
@@ -24,35 +24,39 @@
 <div class="space-y-2">
   {% for item in items %}
   <a href="/items/{{ item.id }}"
-     class="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+     class="flex items-center gap-3.5 bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-slate-100 hover:border-indigo-200 transition-colors group">
     {% if item.photo %}
     <img src="/uploads/{{ item.photo }}" alt="" class="thumb">
     {% else %}
-    <div class="thumb bg-gray-100 flex items-center justify-center text-gray-400">
+    <div class="thumb bg-slate-100 flex items-center justify-center text-slate-300">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
       </svg>
     </div>
     {% endif %}
     <div class="flex-1 min-w-0">
-      <p class="font-semibold text-gray-900 truncate">{{ item.name }}</p>
+      <p class="font-semibold text-slate-900 truncate">{{ item.name }}</p>
       {% if item.description %}
-      <p class="text-xs text-gray-500 truncate">{{ item.description }}</p>
+      <p class="text-xs text-slate-400 truncate mt-0.5">{{ item.description }}</p>
       {% endif %}
     </div>
-    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <svg class="w-4 h-4 text-slate-300 flex-shrink-0 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
     </svg>
   </a>
   {% endfor %}
 </div>
+
 {% else %}
-<div class="text-center py-16 text-gray-400">
-  <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-  </svg>
-  <p class="font-medium">No items yet</p>
-  <a href="/items/new" class="mt-2 inline-block text-blue-600 text-sm">Add your first item →</a>
+<div class="flex flex-col items-center text-center py-10">
+  <img src="/static/empty.jpg" alt="" class="w-48 h-48 object-contain mb-4 opacity-90 rounded-2xl">
+  <p class="font-semibold text-slate-700">{% if q %}No items match "{{ q }}"{% else %}No items yet{% endif %}</p>
+  <p class="text-sm text-slate-400 mt-1 mb-4">{% if q %}Try a different search.{% else %}Add your first item to get started.{% endif %}</p>
+  {% if not q %}
+  <a href="/items/new" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-indigo-200">
+    + New item
+  </a>
+  {% endif %}
 </div>
 {% endif %}
 

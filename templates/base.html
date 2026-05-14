@@ -5,60 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#6366f1">
   <title>{% block title %}BoxTrack{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { DEFAULT: '#6366f1', dark: '#4f46e5', light: '#eef2ff' }
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { padding-bottom: 5rem; }
+    body { font-family: 'Inter', sans-serif; padding-bottom: 5rem; }
     @media print { .no-print { display: none !important; } body { padding: 0; } }
-    .thumb { width: 3rem; height: 3rem; object-fit: cover; border-radius: .375rem; flex-shrink: 0; }
+    .thumb { width: 3rem; height: 3rem; object-fit: cover; border-radius: .5rem; flex-shrink: 0; }
+    input[type=number]::-webkit-inner-spin-button { opacity: 1; }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-slate-50 text-slate-900 antialiased">
 
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
-<div id="flash" class="fixed top-0 inset-x-0 z-50 space-y-1 p-3">
+<div id="flash" class="fixed top-0 inset-x-0 z-50 p-3 space-y-2">
   {% for cat, msg in messages %}
-  <div class="rounded-lg px-4 py-3 text-sm font-medium shadow
-    {% if cat == 'success' %}bg-green-500 text-white
+  <div class="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium shadow-lg
+    {% if cat == 'success' %}bg-emerald-500 text-white
     {% elif cat == 'error' %}bg-red-500 text-white
-    {% else %}bg-blue-500 text-white{% endif %}">
+    {% else %}bg-indigo-500 text-white{% endif %}">
+    <span class="text-lg">
+      {% if cat == 'success' %}✓{% elif cat == 'error' %}✕{% else %}ℹ{% endif %}
+    </span>
     {{ msg }}
   </div>
   {% endfor %}
 </div>
-<script>setTimeout(() => { const el = document.getElementById('flash'); if(el) el.remove(); }, 2800);</script>
+<script>setTimeout(() => { const el = document.getElementById('flash'); if(el) { el.style.transition='opacity .4s'; el.style.opacity=0; setTimeout(()=>el.remove(),400); } }, 2500);</script>
 {% endif %}
 {% endwith %}
 
-<main class="max-w-2xl mx-auto px-4 py-4">
+<main class="max-w-2xl mx-auto px-4 py-5">
   {% block content %}{% endblock %}
 </main>
 
 <!-- bottom nav -->
-<nav class="no-print fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-xl z-40">
+<nav class="no-print fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-slate-100 shadow-xl z-40">
   <div class="max-w-2xl mx-auto grid grid-cols-5">
-    {% macro navlink(ep, href, label, path) %}
-    <a href="{{ href }}" class="flex flex-col items-center pt-2 pb-1 text-xs font-medium
-      {% if request.endpoint == ep or (ep == 'items' and request.endpoint in ['item_detail','new_item','edit_item'])
+
+    {% macro navlink(ep, href, label, d) %}
+    <a href="{{ href }}" class="flex flex-col items-center pt-2 pb-1 text-xs font-medium transition-colors
+      {% if request.endpoint == ep
+         or (ep == 'items'     and request.endpoint in ['item_detail','new_item','edit_item'])
          or (ep == 'locations' and request.endpoint in ['location_detail','new_location','edit_location']) %}
-        text-blue-600{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+        text-indigo-600{% else %}text-slate-400 hover:text-slate-600{% endif %}">
       <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="{{ path }}"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="{{ d }}"/>
       </svg>
       {{ label }}
     </a>
     {% endmacro %}
 
-    {{ navlink('index', '/', 'Home',
+    {{ navlink('index',     '/',          'Home',
       'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6') }}
-    {{ navlink('items', '/items', 'Items',
+    {{ navlink('items',     '/items',     'Items',
       'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
 
-    <!-- scan button (raised) -->
     <a href="/scan" class="flex flex-col items-center pb-1 text-xs font-medium
-      {% if request.endpoint == 'scan' %}text-blue-600{% else %}text-gray-500{% endif %}">
-      <div class="bg-blue-600 rounded-full p-3 -mt-5 shadow-lg">
+      {% if request.endpoint == 'scan' %}text-indigo-600{% else %}text-slate-400{% endif %}">
+      <div class="bg-indigo-600 rounded-2xl p-3 -mt-5 shadow-lg shadow-indigo-200">
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01
@@ -72,7 +93,7 @@
 
     {{ navlink('locations', '/locations', 'Boxes',
       'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4') }}
-    {{ navlink('print_qr', '/print', 'Print',
+    {{ navlink('print_qr',  '/print',     'Print',
       'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z') }}
   </div>
 </nav>
