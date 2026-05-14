@@ -9,6 +9,7 @@ import qrcode
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, send_file, url_for)
 from werkzeug.utils import secure_filename
+import embeddings as emb
 
 app = Flask(__name__)
 
@@ -46,6 +47,7 @@ def init_db():
             name        TEXT NOT NULL,
             description TEXT,
             photo       TEXT,
+            embedding   BLOB,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS locations (
@@ -67,6 +69,11 @@ def init_db():
         );
     """)
     conn.commit()
+    # migrate: add embedding column if missing
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(items)").fetchall()]
+    if "embedding" not in cols:
+        conn.execute("ALTER TABLE items ADD COLUMN embedding BLOB")
+        conn.commit()
     conn.close()
 
 
@@ -77,6 +84,17 @@ init_db()
 
 def _allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
+
+
+def _make_embedding(photo_filename):
+    """Generate embedding blob for a saved photo file, or None if no photo."""
+    if not photo_filename:
+        return None
+    path = os.path.join(UPLOAD_DIR, photo_filename)
+    try:
+        return emb.to_blob(emb.embed_image_file(path))
+    except Exception:
+        return None
 
 
 def _save_photo(file_storage):
@@ -140,9 +158,10 @@ def new_item():
         name  = request.form["name"].strip()
         desc  = request.form.get("description", "").strip()
         photo = _save_photo(request.files.get("photo"))
+        embedding = _make_embedding(photo)
         conn  = get_db()
-        conn.execute("INSERT INTO items (name, description, photo) VALUES (?,?,?)",
-                     (name, desc, photo))
+        conn.execute("INSERT INTO items (name, description, photo, embedding) VALUES (?,?,?,?)",
+                     (name, desc, photo, embedding))
         conn.commit()
         item_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         if from_location:
@@ -188,8 +207,9 @@ def edit_item(item_id):
         if new_p:
             _delete_photo(photo)
             photo = new_p
-        conn.execute("UPDATE items SET name=?,description=?,photo=? WHERE id=?",
-                     (name, desc, photo, item_id))
+        embedding = _make_embedding(photo) if new_p else item["embedding"]
+        conn.execute("UPDATE items SET name=?,description=?,photo=?,embedding=? WHERE id=?",
+                     (name, desc, photo, embedding, item_id))
         conn.commit()
         conn.close()
         flash("Item updated.", "success")
@@ -413,6 +433,77 @@ def api_items():
         ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
+
+
+# ── Visual search ─────────────────────────────────────────────────────────────
+
+@app.route("/search/image", methods=["GET", "POST"])
+def visual_search():
+    if request.method == "POST":
+        file = request.files.get("photo")
+        if not file or not file.filename:
+            flash("Please choose a photo.", "error")
+            return redirect(url_for("visual_search"))
+
+        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
+        tmp = os.path.join(UPLOAD_DIR, f"_query_{uuid.uuid4().hex}.{ext}")
+        file.save(tmp)
+        try:
+            query_vec = emb.embed_image_file(tmp)
+        finally:
+            os.remove(tmp)
+
+        conn  = get_db()
+        rows  = conn.execute(
+            "SELECT id, name, description, photo, embedding FROM items WHERE embedding IS NOT NULL"
+        ).fetchall()
+        unindexed = conn.execute(
+            "SELECT COUNT(*) FROM items WHERE photo IS NOT NULL AND embedding IS NULL"
+        ).fetchone()[0]
+        conn.close()
+
+        scored = sorted(
+            [{"score": emb.similarity(query_vec, emb.from_blob(r["embedding"])), **dict(r)}
+             for r in rows],
+            key=lambda x: x["score"], reverse=True
+        )[:10]
+
+        return render_template("visual_search.html", results=scored, unindexed=unindexed)
+
+    conn = get_db()
+    unindexed = conn.execute(
+        "SELECT COUNT(*) FROM items WHERE photo IS NOT NULL AND embedding IS NULL"
+    ).fetchone()[0]
+    conn.close()
+    return render_template("visual_search.html", results=None, unindexed=unindexed)
+
+
+@app.route("/search/reindex", methods=["POST"])
+def reindex():
+    conn  = get_db()
+    rows  = conn.execute(
+        "SELECT id, photo FROM items WHERE photo IS NOT NULL AND embedding IS NULL"
+    ).fetchall()
+    conn.close()
+
+    count = 0
+    for row in rows:
+        path = os.path.join(UPLOAD_DIR, row["photo"])
+        if not os.path.exists(path):
+            continue
+        try:
+            vec  = emb.embed_image_file(path)
+            conn = get_db()
+            conn.execute("UPDATE items SET embedding=? WHERE id=?",
+                         (emb.to_blob(vec), row["id"]))
+            conn.commit()
+            conn.close()
+            count += 1
+        except Exception:
+            pass
+
+    flash(f"Indexed {count} photo{'s' if count != 1 else ''}.", "success")
+    return redirect(url_for("visual_search"))
 
 
 if __name__ == "__main__":
