@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+inventory.db
+uploads/
+logs/
+.secret_key
+cert.pem
+key.pem

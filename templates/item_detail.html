@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} — BoxTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center gap-3 mb-4">
+  <a href="/items" class="text-gray-400 hover:text-gray-600">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold flex-1 truncate">{{ item.name }}</h1>
+  <a href="/items/{{ item.id }}/edit"
+     class="text-blue-600 text-sm font-semibold">Edit</a>
+</div>
+
+{% if item.photo %}
+<img src="/uploads/{{ item.photo }}" alt="{{ item.name }}"
+     class="w-full max-h-64 object-contain bg-white rounded-xl mb-4 shadow-sm">
+{% endif %}
+
+{% if item.description %}
+<p class="text-gray-600 text-sm bg-white rounded-xl px-4 py-3 mb-4 shadow-sm border border-gray-100">
+  {{ item.description }}
+</p>
+{% endif %}
+
+<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
+  Stored in {{ locations|length }} location{{ 's' if locations|length != 1 }}
+</h2>
+
+{% if locations %}
+<div class="space-y-2">
+  {% for loc in locations %}
+  <a href="/locations/{{ loc.id }}"
+     class="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+    <div>
+      <p class="font-semibold text-gray-900">{{ loc.name }}</p>
+      <p class="text-xs text-gray-500 font-mono">{{ loc.code }}</p>
+    </div>
+    <span class="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+      ×{{ loc.quantity }}
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-8 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
+  <p class="text-sm">Not assigned to any location yet.</p>
+  <a href="/locations" class="text-blue-600 text-sm">Browse boxes →</a>
+</div>
+{% endif %}
+
+{% endblock %}

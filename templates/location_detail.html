@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{{ location.name }} — BoxTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center gap-3 mb-1">
+  <a href="/locations" class="text-gray-400 hover:text-gray-600">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold flex-1 truncate">{{ location.name }}</h1>
+  <a href="/locations/{{ location.id }}/edit" class="text-blue-600 text-sm font-semibold">Edit</a>
+</div>
+
+<div class="flex items-center gap-2 mb-1 ml-9">
+  <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ location.code }}</span>
+  <a href="/qr/{{ location.id }}.png" target="_blank"
+     class="text-xs text-blue-600">View QR</a>
+</div>
+
+{% if location.description %}
+<p class="text-sm text-gray-500 ml-9 mb-3">{{ location.description }}</p>
+{% endif %}
+
+<!-- add item search -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+  <p class="text-sm font-semibold text-gray-700 mb-2">Add an item</p>
+  <div class="relative mb-2">
+    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <input type="text" id="item-search" placeholder="Search items to add…"
+           autocomplete="off"
+           class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+  </div>
+  <div id="search-results" class="space-y-1 hidden"></div>
+
+  <!-- add form (hidden until item selected) -->
+  <form method="post" action="/locations/{{ location.id }}/add" id="add-form" class="hidden mt-3 flex gap-2 items-center">
+    <input type="hidden" name="item_id" id="selected-item-id">
+    <div class="flex-1 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+      <p class="text-xs text-blue-500">Adding</p>
+      <p class="text-sm font-semibold text-blue-800 truncate" id="selected-item-name"></p>
+    </div>
+    <input type="number" name="quantity" value="1" min="1" max="9999"
+           class="w-16 border border-gray-200 rounded-lg px-2 py-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Add</button>
+    <button type="button" onclick="clearSelection()" class="text-gray-400 px-2 py-2">✕</button>
+  </form>
+</div>
+
+<!-- items in this location -->
+<div class="flex items-center justify-between mb-2">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+    Contents ({{ items|length }})
+  </h2>
+</div>
+
+{% if items %}
+<div class="space-y-2" id="items-list">
+  {% for item in items %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="flex items-center gap-3 px-4 py-3">
+      {% if item.photo %}
+      <img src="/uploads/{{ item.photo }}" alt="" class="thumb">
+      {% else %}
+      <div class="thumb bg-gray-100 flex items-center justify-center text-gray-300">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+      </div>
+      {% endif %}
+      <a href="/items/{{ item.id }}" class="flex-1 min-w-0">
+        <p class="font-semibold text-gray-900 truncate">{{ item.name }}</p>
+        {% if item.description %}
+        <p class="text-xs text-gray-400 truncate">{{ item.description }}</p>
+        {% endif %}
+      </a>
+      <!-- quantity editor -->
+      <form method="post" action="/locations/{{ location.id }}/qty/{{ item.id }}" class="flex items-center gap-1">
+        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="9999"
+               class="w-14 border border-gray-200 rounded-lg px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+               onchange="this.form.submit()">
+      </form>
+      <form method="post" action="/locations/{{ location.id }}/remove/{{ item.id }}"
+            onsubmit="return confirm('Remove {{ item.name }} from this box?')">
+        <button type="submit" class="ml-1 text-red-400 hover:text-red-600 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
+  <p class="text-sm">This box is empty.</p>
+  <p class="text-xs mt-1">Search above to add items.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+const LOC_ID = '{{ location.id }}';
+let debounce;
+
+document.getElementById('item-search').addEventListener('input', function() {
+  clearTimeout(debounce);
+  const q = this.value.trim();
+  if (!q) { hideResults(); return; }
+  debounce = setTimeout(() => fetchItems(q), 200);
+});
+
+async function fetchItems(q) {
+  const res  = await fetch(`/api/items?q=${encodeURIComponent(q)}&exclude_location=${LOC_ID}`);
+  const data = await res.json();
+  const box  = document.getElementById('search-results');
+
+  if (!data.length) {
+    box.innerHTML = '<p class="text-xs text-gray-400 px-2 py-2">No items found. <a href="/items/new" class="text-blue-600">Create one?</a></p>';
+    box.classList.remove('hidden');
+    return;
+  }
+
+  box.innerHTML = data.map(item => `
+    <button type="button" onclick='selectItem(${item.id}, ${JSON.stringify(item.name)})'
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-left">
+      ${item.photo
+        ? `<img src="/uploads/${item.photo}" class="thumb">`
+        : `<div class="thumb bg-gray-100 flex items-center justify-center text-gray-300">
+             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+             </svg></div>`}
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-gray-900 truncate">${item.name}</p>
+        ${item.description ? `<p class="text-xs text-gray-400 truncate">${item.description}</p>` : ''}
+      </div>
+    </button>
+  `).join('');
+  box.classList.remove('hidden');
+}
+
+function selectItem(id, name) {
+  document.getElementById('selected-item-id').value = id;
+  document.getElementById('selected-item-name').textContent = name;
+  document.getElementById('add-form').classList.remove('hidden');
+  hideResults();
+  document.getElementById('item-search').value = '';
+}
+
+function clearSelection() {
+  document.getElementById('add-form').classList.add('hidden');
+  document.getElementById('selected-item-id').value = '';
+}
+
+function hideResults() {
+  const box = document.getElementById('search-results');
+  box.classList.add('hidden');
+  box.innerHTML = '';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#item-search') && !e.target.closest('#search-results')) hideResults();
+});
+</script>
+{% endblock %}

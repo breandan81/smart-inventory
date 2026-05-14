@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}Edit Item{% else %}New Item{% endif %} — BoxTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ '/items/' + item.id|string if item else '/items' }}"
+     class="text-gray-400 hover:text-gray-600">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold">{% if item %}Edit Item{% else %}New Item{% endif %}</h1>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="space-y-4">
+
+  <!-- photo upload -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+    <div id="drop-zone"
+         class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer bg-white hover:border-blue-400 transition-colors">
+      {% if item and item.photo %}
+      <img id="preview" src="/uploads/{{ item.photo }}" alt=""
+           class="mx-auto max-h-40 object-contain rounded-lg mb-2">
+      <p class="text-xs text-gray-500">Tap to replace photo</p>
+      {% else %}
+      <img id="preview" class="mx-auto max-h-40 object-contain rounded-lg mb-2 hidden">
+      <svg id="placeholder-icon" class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <p class="text-sm text-gray-400">Tap to add a photo</p>
+      {% endif %}
+      <input type="file" name="photo" id="photo-input" accept="image/*" capture="environment"
+             class="hidden">
+    </div>
+  </div>
+
+  <div>
+    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+    <input type="text" name="name" id="name" required
+           value="{{ item.name if item else '' }}"
+           class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+           placeholder="e.g. Winter jacket">
+  </div>
+
+  <div>
+    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+    <textarea name="description" id="description" rows="3"
+              class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Optional notes…">{{ item.description if item else '' }}</textarea>
+  </div>
+
+  <button type="submit"
+          class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold shadow-sm active:bg-blue-700">
+    {% if item %}Save Changes{% else %}Create Item{% endif %}
+  </button>
+
+</form>
+
+{% if item %}
+<form method="post" action="/items/{{ item.id }}/delete"
+      onsubmit="return confirm('Delete this item?')">
+  <button type="submit"
+          class="w-full mt-3 bg-white text-red-500 border border-red-200 py-3 rounded-xl font-semibold">
+    Delete Item
+  </button>
+</form>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  const zone  = document.getElementById('drop-zone');
+  const input = document.getElementById('photo-input');
+  const prev  = document.getElementById('preview');
+  const icon  = document.getElementById('placeholder-icon');
+
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      prev.src = e.target.result;
+      prev.classList.remove('hidden');
+      if (icon) icon.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+{% endblock %}

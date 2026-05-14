@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Scan QR — BoxTrack{% endblock %}
+{% block content %}
+
+<h1 class="text-xl font-bold mb-1">Scan a Box</h1>
+
+<!-- primary: native camera instruction -->
+<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+  <p class="text-sm font-semibold text-blue-800 mb-1">Use your phone's camera app</p>
+  <p class="text-sm text-blue-700">
+    Point your camera at any BoxTrack QR label — tap the link that appears to open that box instantly.
+    No special app needed.
+  </p>
+</div>
+
+<!-- manual code entry -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+  <p class="text-sm font-semibold text-gray-700 mb-2">Or enter a code manually</p>
+  <form onsubmit="handleManual(event)" class="flex gap-2">
+    <input type="text" id="manual-code" placeholder="e.g. ABC123"
+           class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+           maxlength="20" autocomplete="off" autofocus>
+    <button type="submit"
+            class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold">Go</button>
+  </form>
+</div>
+
+<!-- in-app scanner (only shown if camera is available) -->
+<div id="scanner-section" class="hidden">
+  <p class="text-sm font-semibold text-gray-700 mb-2">In-app scanner</p>
+  <div class="bg-black rounded-xl overflow-hidden shadow-lg mb-2" style="aspect-ratio:1">
+    <div id="reader" class="w-full h-full"></div>
+  </div>
+  <p id="scan-status" class="text-center text-xs text-gray-400"></p>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function handleManual(e) {
+  e.preventDefault();
+  const code = document.getElementById('manual-code').value.trim().toUpperCase();
+  if (code) window.location.href = '/go/' + encodeURIComponent(code);
+}
+document.getElementById('manual-code').addEventListener('input', function() {
+  this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+// Only attempt in-app scanner if we're on HTTPS (camera API requires it)
+if (window.location.protocol === 'https:') {
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  script.onload = () => {
+    Html5Qrcode.getCameras().then(cameras => {
+      if (!cameras.length) return;
+      document.getElementById('scanner-section').classList.remove('hidden');
+      const cam     = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
+      const scanner = new Html5Qrcode('reader');
+      const status  = document.getElementById('scan-status');
+      status.textContent = 'Ready — point at a QR code';
+      scanner.start(cam.id, { fps: 10, qrbox: 250, aspectRatio: 1 }, decodedText => {
+        let code = decodedText.trim();
+        const m  = code.match(/\/go\/([A-Z0-9]+)\s*$/i);
+        if (m) code = m[1];
+        status.textContent = '✓ ' + code;
+        scanner.stop().then(() => { window.location.href = '/go/' + encodeURIComponent(code.toUpperCase()); });
+      }, () => {});
+    }).catch(() => {});
+  };
+  document.body.appendChild(script);
+}
+</script>
+{% endblock %}
