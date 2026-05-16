@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Checked Out — BoxTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center gap-3 mb-5">
+  <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-slate-900">Checked Out</h1>
+  <span class="text-sm font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full ml-auto">
+    {{ checkouts|length }}
+  </span>
+</div>
+
+{% if checkouts %}
+<div class="space-y-2">
+  {% for co in checkouts %}
+  <div class="bg-white rounded-2xl shadow-sm border border-amber-100 px-4 py-3.5">
+    <div class="flex items-center gap-3 mb-2">
+      {% if co.item_photo %}
+      <img src="/uploads/{{ co.item_photo }}" alt="" class="thumb">
+      {% else %}
+      <div class="thumb bg-slate-100 flex items-center justify-center text-slate-300 flex-shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+      </div>
+      {% endif %}
+      <div class="flex-1 min-w-0">
+        <a href="/items/{{ co.item_id }}" class="font-semibold text-slate-900 hover:text-indigo-600">
+          {{ co.item_name }}
+        </a>
+        <div class="flex items-center gap-2 mt-0.5">
+          <span class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-full">
+            ×{{ co.quantity }} out
+          </span>
+          {% if co.loc_name %}
+          <span class="text-xs text-slate-400">from
+            <a href="/locations/{{ co.from_location_id }}" class="text-slate-500 hover:text-indigo-600 font-medium">
+              {{ co.loc_name }}
+            </a>
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% if co.note %}
+    <p class="text-xs text-slate-500 mb-2 pl-0.5">{{ co.note }}</p>
+    {% endif %}
+    <div class="flex items-center justify-between">
+      <p class="text-xs text-slate-400">
+        {{ co.checked_out_at[:16].replace('T', ' ') }}
+      </p>
+      <form method="post" action="/checkouts/{{ co.id }}/return">
+        <button type="submit"
+                class="bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm shadow-emerald-100">
+          Return{% if co.loc_name %} to {{ co.loc_name }}{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="flex flex-col items-center text-center py-14 bg-white rounded-2xl border border-dashed border-slate-200">
+  <img src="/static/empty.jpg" alt="" class="w-36 h-36 object-contain mb-3 opacity-80 rounded-xl">
+  <p class="text-sm font-medium text-slate-600">Nothing checked out</p>
+  <p class="text-xs text-slate-400 mt-1">Check items out from a box or item page.</p>
+</div>
+{% endif %}
+
+{% endblock %}

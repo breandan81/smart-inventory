@@ -3,11 +3,7 @@
 {% block content %}
 
 <style>
-  .label-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
+  /* ── shared card styles ── */
   .label-card {
     background: white;
     border: 2px solid #d1d5db;
@@ -21,46 +17,88 @@
     page-break-inside: avoid;
   }
   .label-name {
-    font-size: 0.95rem;
     font-weight: 700;
     color: #111827;
     line-height: 1.2;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     word-break: break-word;
   }
-  .label-qr {
-    width: 8rem;
-    height: 8rem;
-    object-fit: contain;
-    margin-bottom: 0.5rem;
-  }
+  .label-qr { object-fit: contain; margin-bottom: 0.4rem; }
   .label-code {
     font-family: ui-monospace, monospace;
-    font-size: 1.1rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: #1f2937;
     background: #f3f4f6;
     border-radius: 0.375rem;
-    padding: 0.2rem 0.6rem;
-    margin-top: 0.25rem;
+    padding: 0.2rem 0.5rem;
   }
-  .label-desc {
-    font-size: 0.7rem;
-    color: #6b7280;
-    margin-top: 0.35rem;
-    line-height: 1.3;
+  .label-desc { color: #6b7280; line-height: 1.3; margin-top: 0.3rem; }
+
+  /* ── large labels: 4 per box in a 2×2 grid ── */
+  .large-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  .large-grid .label-card { }
+  .large-grid .label-name { font-size: 0.95rem; }
+  .large-grid .label-qr   { width: 8rem; height: 8rem; }
+  .large-grid .label-code { font-size: 1.1rem; }
+  .large-grid .label-desc { font-size: 0.7rem; }
+
+  /* ── small labels: 4 per box in a single row ── */
+  .small-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .small-grid .label-card { padding: 0.4rem; }
+  .small-grid .label-name { font-size: 0.6rem; }
+  .small-grid .label-qr   { width: 4rem; height: 4rem; }
+  .small-grid .label-code { font-size: 0.65rem; padding: 0.1rem 0.3rem; }
+  .small-grid .label-desc { font-size: 0.5rem; }
+
+  /* ── separator between boxes ── */
+  .box-section { margin-bottom: 1.5rem; }
+  .section-divider {
+    border: none;
+    border-top: 1px dashed #e5e7eb;
+    margin: 1rem 0;
   }
 
   @media print {
     .no-print { display: none !important; }
     body { padding: 0 !important; background: white !important; }
-    main { max-width: 100% !important; padding: 0.5cm !important; }
-    .label-grid { grid-template-columns: repeat(3, 1fr); gap: 0.4cm; }
-    .label-card { border: 1.5pt solid #888; border-radius: 0.3cm; padding: 0.3cm; }
-    .label-name { font-size: 10pt; }
-    .label-code { font-size: 12pt; }
-    .label-desc { font-size: 7pt; }
+    main { max-width: 100% !important; padding: 0.4cm !important; }
+
+    .large-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.3cm;
+      margin-bottom: 0.2cm;
+    }
+    .small-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.2cm;
+      margin-bottom: 0.2cm;
+    }
+    .label-card {
+      border: 1.5pt solid #888;
+      border-radius: 0.25cm;
+      padding: 0.25cm;
+    }
+    .large-grid .label-name { font-size: 9pt; }
+    .large-grid .label-code { font-size: 11pt; }
+    .large-grid .label-desc { font-size: 7pt; }
+    .large-grid .label-qr   { width: 2.8cm; height: 2.8cm; }
+    .small-grid .label-name { font-size: 6pt; }
+    .small-grid .label-code { font-size: 6pt; }
+    .small-grid .label-desc { font-size: 5pt; }
+    .small-grid .label-qr   { width: 1.4cm; height: 1.4cm; }
+    .section-divider { border-top: 0.5pt dashed #bbb; margin: 0.2cm 0; }
+    .box-section { margin-bottom: 0.5cm; }
   }
 </style>
 
@@ -76,22 +114,38 @@
 </div>
 
 <p class="text-sm text-gray-500 mb-6 no-print">
-  Each label shows the box name, QR code, and short code. Print and cut out — scan with any camera to jump to that box.
+  Each box gets 4 large labels and 4 small labels. Print, cut, and stick — scan any with your camera to jump straight to the box.
 </p>
 
 {% if locations %}
-<div class="label-grid">
   {% for loc in locations %}
-  <div class="label-card">
-    <p class="label-name">{{ loc.name }}</p>
-    <img src="/qr/{{ loc.id }}.png" alt="QR for {{ loc.name }}" class="label-qr">
-    <span class="label-code">{{ loc.code }}</span>
-    {% if loc.description %}
-    <p class="label-desc">{{ loc.description }}</p>
-    {% endif %}
+  <div class="box-section">
+    {% if not loop.first %}<hr class="section-divider no-print">{% endif %}
+
+    <!-- 4 large labels -->
+    <div class="large-grid">
+      {% for _ in range(4) %}
+      <div class="label-card">
+        <p class="label-name">{{ loc.name }}</p>
+        <img src="/qr/{{ loc.id }}.png" alt="QR for {{ loc.name }}" class="label-qr">
+        <span class="label-code">{{ loc.code }}</span>
+        {% if loc.description %}<p class="label-desc">{{ loc.description }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- 4 small labels -->
+    <div class="small-grid">
+      {% for _ in range(4) %}
+      <div class="label-card">
+        <p class="label-name">{{ loc.name }}</p>
+        <img src="/qr/{{ loc.id }}.png" alt="QR for {{ loc.name }}" class="label-qr">
+        <span class="label-code">{{ loc.code }}</span>
+      </div>
+      {% endfor %}
+    </div>
   </div>
   {% endfor %}
-</div>
 {% else %}
 <div class="text-center py-16 text-gray-400">
   <p class="font-medium">No boxes yet.</p>

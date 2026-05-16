@@ -57,6 +57,16 @@ def init_db():
             description TEXT,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS checkouts (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id          INTEGER NOT NULL,
+            from_location_id INTEGER,
+            quantity         INTEGER DEFAULT 1,
+            note             TEXT,
+            checked_out_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id)          REFERENCES items(id)     ON DELETE CASCADE,
+            FOREIGN KEY (from_location_id) REFERENCES locations(id) ON DELETE SET NULL
+        );
         CREATE TABLE IF NOT EXISTS item_locations (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id     INTEGER NOT NULL,
@@ -122,16 +132,18 @@ def _random_code(length=6):
 @app.route("/")
 def index():
     conn = get_db()
-    item_count = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
-    loc_count  = conn.execute("SELECT COUNT(*) FROM locations").fetchone()[0]
-    recent     = conn.execute("""
+    item_count     = conn.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+    loc_count      = conn.execute("SELECT COUNT(*) FROM locations").fetchone()[0]
+    checkout_count = conn.execute("SELECT COUNT(*) FROM checkouts").fetchone()[0]
+    recent         = conn.execute("""
         SELECT l.*, COUNT(il.item_id) AS item_count
         FROM locations l LEFT JOIN item_locations il ON l.id = il.location_id
         GROUP BY l.id ORDER BY l.created_at DESC LIMIT 6
     """).fetchall()
     conn.close()
     return render_template("index.html",
-                           item_count=item_count, loc_count=loc_count, recent=recent)
+                           item_count=item_count, loc_count=loc_count,
+                           checkout_count=checkout_count, recent=recent)
 
 
 # ── Routes: items ─────────────────────────────────────────────────────────────
@@ -395,12 +407,18 @@ def scan_redirect(code):
 
 @app.route("/print")
 def print_qr():
-    conn      = get_db()
-    locations = conn.execute("""
+    conn = get_db()
+    loc_id = request.args.get("loc", type=int)
+    query = """
         SELECT l.*, COUNT(il.item_id) AS item_count
         FROM locations l LEFT JOIN item_locations il ON l.id = il.location_id
+        {where}
         GROUP BY l.id ORDER BY l.name
-    """).fetchall()
+    """
+    if loc_id:
+        locations = conn.execute(query.format(where="WHERE l.id = ?"), (loc_id,)).fetchall()
+    else:
+        locations = conn.execute(query.format(where="")).fetchall()
     conn.close()
     return render_template("print_qr.html", locations=locations)
 
@@ -413,6 +431,28 @@ def uploaded_file(filename):
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
+
+@app.route("/api/locations")
+def api_locations():
+    q    = request.args.get("q", "").strip()
+    excl = request.args.get("exclude_item")
+    conn = get_db()
+    if excl:
+        rows = conn.execute("""
+            SELECT id, name, code, description FROM locations
+            WHERE (name LIKE ? OR code LIKE ? OR description LIKE ?)
+              AND id NOT IN (SELECT location_id FROM item_locations WHERE item_id=?)
+            ORDER BY name LIMIT 30
+        """, (f"%{q}%", f"%{q}%", f"%{q}%", excl)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT id, name, code, description FROM locations
+            WHERE name LIKE ? OR code LIKE ? OR description LIKE ?
+            ORDER BY name LIMIT 30
+        """, (f"%{q}%", f"%{q}%", f"%{q}%")).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
 
 @app.route("/api/items")
 def api_items():
@@ -433,6 +473,83 @@ def api_items():
         ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
+
+
+# ── Checkouts ─────────────────────────────────────────────────────────────────
+
+@app.route("/checkouts")
+def checkouts():
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT c.*, i.name AS item_name, i.photo AS item_photo,
+               l.name AS loc_name, l.code AS loc_code
+        FROM checkouts c
+        JOIN items i ON c.item_id = i.id
+        LEFT JOIN locations l ON c.from_location_id = l.id
+        ORDER BY c.checked_out_at DESC
+    """).fetchall()
+    conn.close()
+    return render_template("checkouts.html", checkouts=rows)
+
+
+@app.route("/items/<int:item_id>/checkout", methods=["POST"])
+def checkout_item(item_id):
+    from_location_id = request.form.get("from_location_id") or None
+    quantity         = max(1, int(request.form.get("quantity", 1)))
+    note             = request.form.get("note", "").strip() or None
+
+    conn = get_db()
+    # Reduce quantity in source location (or remove if fully checked out)
+    if from_location_id:
+        row = conn.execute(
+            "SELECT quantity FROM item_locations WHERE item_id=? AND location_id=?",
+            (item_id, from_location_id)
+        ).fetchone()
+        if row:
+            remaining = row["quantity"] - quantity
+            if remaining <= 0:
+                conn.execute(
+                    "DELETE FROM item_locations WHERE item_id=? AND location_id=?",
+                    (item_id, from_location_id)
+                )
+            else:
+                conn.execute(
+                    "UPDATE item_locations SET quantity=? WHERE item_id=? AND location_id=?",
+                    (remaining, item_id, from_location_id)
+                )
+
+    conn.execute(
+        "INSERT INTO checkouts (item_id, from_location_id, quantity, note) VALUES (?,?,?,?)",
+        (item_id, from_location_id, quantity, note)
+    )
+    conn.commit()
+    conn.close()
+    flash("Item checked out.", "success")
+
+    if from_location_id:
+        return redirect(url_for("location_detail", location_id=from_location_id))
+    return redirect(url_for("item_detail", item_id=item_id))
+
+
+@app.route("/checkouts/<int:checkout_id>/return", methods=["POST"])
+def return_item(checkout_id):
+    conn     = get_db()
+    checkout = conn.execute("SELECT * FROM checkouts WHERE id=?", (checkout_id,)).fetchone()
+    if not checkout:
+        abort(404)
+
+    # Put it back where it came from (if that location still exists)
+    if checkout["from_location_id"]:
+        conn.execute("""
+            INSERT INTO item_locations (item_id, location_id, quantity) VALUES (?,?,?)
+            ON CONFLICT(item_id, location_id) DO UPDATE SET quantity = quantity + excluded.quantity
+        """, (checkout["item_id"], checkout["from_location_id"], checkout["quantity"]))
+
+    conn.execute("DELETE FROM checkouts WHERE id=?", (checkout_id,))
+    conn.commit()
+    conn.close()
+    flash("Item returned.", "success")
+    return redirect(url_for("checkouts"))
 
 
 # ── Visual search ─────────────────────────────────────────────────────────────

@@ -10,6 +10,8 @@
     </svg>
   </a>
   <h1 class="text-xl font-bold text-slate-900 flex-1 truncate">{{ location.name }}</h1>
+  <a href="/print?loc={{ location.id }}"
+     class="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">Print</a>
   <a href="/locations/{{ location.id }}/edit"
      class="text-sm font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl">Edit</a>
 </div>
@@ -95,6 +97,17 @@
         <span class="w-8 text-center text-sm font-semibold text-slate-700">{{ item.quantity }}</span>
         <button type="submit" name="quantity" value="{{ item.quantity + 1 }}"
                 class="px-2 py-1.5 text-slate-500 hover:bg-slate-200 transition-colors text-base leading-none">+</button>
+      </form>
+      <!-- check out -->
+      <form method="post" action="/items/{{ item.id }}/checkout">
+        <input type="hidden" name="from_location_id" value="{{ location.id }}">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" title="Check out"
+                class="ml-1 text-slate-300 hover:text-amber-500 transition-colors p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+          </svg>
+        </button>
       </form>
       <!-- remove -->
       <form method="post" action="/locations/{{ location.id }}/remove/{{ item.id }}"
