@@ -109,9 +109,13 @@ def _make_embedding(photo_filename):
 
 def _save_photo(file_storage):
     if file_storage and file_storage.filename and _allowed(file_storage.filename):
-        ext = file_storage.filename.rsplit(".", 1)[1].lower()
-        name = f"{uuid.uuid4().hex}.{ext}"
-        file_storage.save(os.path.join(UPLOAD_DIR, name))
+        from PIL import Image, ImageOps
+        name = f"{uuid.uuid4().hex}.jpg"
+        img = Image.open(file_storage.stream)
+        img = ImageOps.exif_transpose(img)  # fix rotation from phone cameras
+        img = img.convert("RGB")
+        img.thumbnail((1024, 1024), Image.LANCZOS)
+        img.save(os.path.join(UPLOAD_DIR, name), format="JPEG", quality=82, optimize=True)
         return name
     return None
 
